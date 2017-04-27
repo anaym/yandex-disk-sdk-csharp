@@ -203,7 +203,7 @@
     <value>PUT</value>
   </data>
   <data name="TokenRegexPattern" xml:space="preserve">
-    <value>([a-zA-Z0-9]){32}</value>
+    <value>([a-zA-Z0-9]){39}</value>
   </data>
   <data name="UnpublishBody" xml:space="preserve">
     <value>&lt;propertyupdate xmlns="DAV:"&gt;

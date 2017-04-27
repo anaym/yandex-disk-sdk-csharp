@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Disk.SDK.Provider
 {
@@ -174,6 +175,58 @@ namespace Disk.SDK.Provider
             catch (Exception ex)
             {
                 completeCallback.SafeInvoke(sdkClient, new SdkEventArgs(HttpUtilities.ProcessException(ex)));
+            }
+        }
+
+        public static async Task UploadAsync(this string token, string path, Stream fileStream, IProgress<double> progress = null)
+        {
+            var request = HttpUtilities.CreateRequest(token, path);
+            request.Method = WebdavResources.PutMethod;
+            request.AllowWriteStreamBuffering = false;
+            request.SendChunked = true;
+
+            using (var requestStream = await request.GetRequestStreamAsync())
+            {
+                const int BUFFER_LENGTH = 4096;
+                var total = (ulong) fileStream.Length;
+                ulong current = 0;
+                var buffer = new byte[BUFFER_LENGTH];
+                var count = fileStream.Read(buffer, 0, BUFFER_LENGTH);
+                while (count > 0)
+                {
+                    requestStream.Write(buffer, 0, count);
+                    current += (ulong) count;
+                    progress?.Report(1.0*current/total);
+                    count = fileStream.Read(buffer, 0, BUFFER_LENGTH);
+                }
+            }
+
+            var response = await request.GetResponseAsync();
+        }
+
+        public static async Task DownloadAsync(this string token, string path, Stream fileStream, IProgress<double> progress = null)
+        {
+            var request = HttpUtilities.CreateRequest(token, path);
+            request.Method = WebdavResources.GetMethod;
+            using (var response = await request.GetResponseAsync())
+            {
+                using (var responseStream = response.GetResponseStream())
+                {
+                    const int BUFFER_LENGTH = 4096;
+                    var total = (ulong) response.ContentLength;
+                    ulong current = 0;
+                    var buffer = new byte[BUFFER_LENGTH];
+                    var count = responseStream.Read(buffer, 0, BUFFER_LENGTH);
+                    while (count > 0)
+                    {
+                        fileStream.Write(buffer, 0, count);
+                        current += (ulong) count;
+                        progress?.Report(1.0*current/total);
+                        count = responseStream.Read(buffer, 0, BUFFER_LENGTH);
+                    }
+
+                    fileStream.Dispose();
+                }
             }
         }
     }
