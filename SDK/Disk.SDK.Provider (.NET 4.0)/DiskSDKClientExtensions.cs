@@ -187,17 +187,17 @@ namespace Disk.SDK.Provider
 
             using (var requestStream = await request.GetRequestStreamAsync())
             {
-                const int BUFFER_LENGTH = 4096;
+                const int BUFFER_LENGTH = 16384;
                 var total = (ulong) fileStream.Length;
                 ulong current = 0;
                 var buffer = new byte[BUFFER_LENGTH];
-                var count = fileStream.Read(buffer, 0, BUFFER_LENGTH);
+                var count = await fileStream.ReadAsync(buffer, 0, BUFFER_LENGTH);
                 while (count > 0)
                 {
-                    requestStream.Write(buffer, 0, count);
+                    await requestStream.WriteAsync(buffer, 0, count);
                     current += (ulong) count;
                     progress?.Report(1.0*current/total);
-                    count = fileStream.Read(buffer, 0, BUFFER_LENGTH);
+                    count = await fileStream.ReadAsync(buffer, 0, BUFFER_LENGTH);
                 }
             }
 
@@ -212,17 +212,17 @@ namespace Disk.SDK.Provider
             {
                 using (var responseStream = response.GetResponseStream())
                 {
-                    const int BUFFER_LENGTH = 4096;
+                    const int BUFFER_LENGTH = 16384;
                     var total = (ulong) response.ContentLength;
                     ulong current = 0;
                     var buffer = new byte[BUFFER_LENGTH];
-                    var count = responseStream.Read(buffer, 0, BUFFER_LENGTH);
+                    var count = await responseStream.ReadAsync(buffer, 0, BUFFER_LENGTH);
                     while (count > 0)
                     {
-                        fileStream.Write(buffer, 0, count);
+                        await fileStream.WriteAsync(buffer, 0, count);
                         current += (ulong) count;
                         progress?.Report(1.0*current/total);
-                        count = responseStream.Read(buffer, 0, BUFFER_LENGTH);
+                        count = await responseStream.ReadAsync(buffer, 0, BUFFER_LENGTH);
                     }
 
                     fileStream.Dispose();
